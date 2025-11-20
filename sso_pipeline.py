@@ -125,6 +125,33 @@ def merge_sso_with_collection_system(
         df_sso["collection_system_identifier"].astype(str).str.strip().str.upper()
     )
 
+    # --------------------------------------------------
+    # Coordinate cleanup (fix sign errors for US systems)
+    # --------------------------------------------------
+    # Convert to numeric, coerce bad text to NaN
+    df_sso["latitude_measure"] = pd.to_numeric(
+        df_sso.get("latitude_measure"), errors="coerce"
+    )
+    df_sso["longitude_measure"] = pd.to_numeric(
+        df_sso.get("longitude_measure"), errors="coerce"
+    )
+
+    # 1) Rows with negative latitude (e.g. -41, 98) -> flip both
+    mask_both = df_sso["latitude_measure"] < 0
+    df_sso.loc[mask_both, ["latitude_measure", "longitude_measure"]] = (
+        -df_sso.loc[mask_both, ["latitude_measure", "longitude_measure"]]
+    )
+
+    # 2) Rows with plausible US mainland lat (>= 0) and positive lon 60–110 -> flip lon only
+    #    (e.g. 40, 88 -> 40, -88). This will NOT touch Guam (lon ~144).
+    mask_lon_only = (
+        df_sso["latitude_measure"].ge(0)
+        & df_sso["longitude_measure"].between(60, 110)
+    )
+    df_sso.loc[mask_lon_only, "longitude_measure"] = -df_sso.loc[
+        mask_lon_only, "longitude_measure"
+    ]
+
     # Event-level merge: all SSO events, with collection system attributes appended
     df_merged = df_sso.merge(
         df_coll,
@@ -187,7 +214,6 @@ def merge_sso_with_collection_system(
         "sso_events_with_collection_system": df_merged,
         "sso_summary_by_permit_year": sso_summary,
     }
-
 
 # =========================================================
 # 3. Orchestration
