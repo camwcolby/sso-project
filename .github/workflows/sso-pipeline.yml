@@ -39,5 +39,3 @@ jobs:
         with:
           name: sso-outputs
           path: outputs/
-
-
