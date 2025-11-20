@@ -165,6 +165,20 @@ def merge_sso_with_collection_system(
     df_coll_raw = df_coll_raw.drop(columns=["_permit_join", "_cs_join"], errors="ignore")
     df_sso_raw = df_sso_raw.drop(columns=["_permit_join", "_cs_join"], errors="ignore")
 
+    # --------------------------------------------------
+    # Standardize coordinates for ArcGIS Online
+    # --------------------------------------------------
+    if "latitude_measure" in df_merged.columns:
+        df_merged = df_merged.rename(columns={"latitude_measure": "latitude"})
+    if "longitude_measure" in df_merged.columns:
+        df_merged = df_merged.rename(columns={"longitude_measure": "longitude"})
+
+    df_merged["latitude"] = pd.to_numeric(df_merged["latitude"], errors="coerce")
+    df_merged["longitude"] = pd.to_numeric(df_merged["longitude"], errors="coerce")
+
+    # Drop rows without valid coordinates (prevents 0,0 or NaN points in AGOL)
+    df_merged = df_merged.dropna(subset=["latitude", "longitude"])
+
     print("[sso] Merged events shape:", df_merged.shape)
 
     # ---- Build a simple per-permit/year summary ----
@@ -214,6 +228,7 @@ def merge_sso_with_collection_system(
         "sso_events_with_collection_system": df_merged,
         "sso_summary_by_permit_year": sso_summary,
     }
+
 
 # =========================================================
 # 3. Orchestration
