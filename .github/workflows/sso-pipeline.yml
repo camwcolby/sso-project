@@ -1,9 +1,11 @@
 name: build-sso-pipeline
 
 on:
+  schedule:
+    - cron: "0 6 * * 1"   # every Monday at 06:00 UTC
+  workflow_dispatch:
   push:
     branches: [ main ]
-  workflow_dispatch:
 
 jobs:
   build:
@@ -26,8 +28,16 @@ jobs:
       - name: Run SSO pipeline
         run: python sso_pipeline.py
 
+      - name: Copy CSVs to public_data
+        run: |
+          mkdir -p public_data
+          cp outputs/sso_events_with_collection_system.csv public_data/sso_events.csv
+          cp outputs/sso_summary_by_permit_year.csv public_data/sso_summary_by_permit_year.csv
+
       - name: Upload output artifacts
         uses: actions/upload-artifact@v4
         with:
           name: sso-outputs
           path: outputs/
+
+
