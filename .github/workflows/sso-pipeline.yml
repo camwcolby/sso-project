@@ -7,6 +7,9 @@ on:
   push:
     branches: [ main ]
 
+permissions:
+  contents: write    # allow this workflow to push commits
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -14,6 +17,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true   # needed so we can push back to the repo
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -34,8 +39,8 @@ jobs:
           cp outputs/sso_events_with_collection_system.csv public_data/sso_events.csv
           cp outputs/sso_summary_by_permit_year.csv public_data/sso_summary_by_permit_year.csv
 
-      - name: Upload output artifacts
-        uses: actions/upload-artifact@v4
+      - name: Commit updated public_data CSVs
+        uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          name: sso-outputs
-          path: outputs/
+          commit_message: "Update SSO public_data CSVs [skip ci]"
+          file_pattern: public_data/*.csv
